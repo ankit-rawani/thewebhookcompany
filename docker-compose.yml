@@ -8,6 +8,7 @@ services:
   # Start zookeeper
   zookeeper:
     image: apachepulsar/pulsar:latest
+    user: root
     container_name: zookeeper
     restart: on-failure
     networks:
@@ -30,6 +31,7 @@ services:
   # Init cluster metadata
   pulsar-init:
     container_name: pulsar-init
+    user: root
     hostname: pulsar-init
     image: apachepulsar/pulsar:latest
     networks:
@@ -48,6 +50,7 @@ services:
   # Start bookie
   bookie:
     image: apachepulsar/pulsar:latest
+    user: root
     container_name: bookie
     restart: on-failure
     networks:
@@ -73,6 +76,7 @@ services:
   # Start broker
   broker:
     image: apachepulsar/pulsar:latest
+    user: root
     container_name: broker
     hostname: broker
     restart: on-failure
@@ -100,6 +104,7 @@ services:
 
   manager:
     image: apachepulsar/pulsar-manager:latest
+    user: root
     container_name: manager
     hostname: manager
     restart: on-failure

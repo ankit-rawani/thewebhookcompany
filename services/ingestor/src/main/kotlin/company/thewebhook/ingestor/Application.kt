@@ -3,6 +3,7 @@ package company.thewebhook.ingestor
 import company.thewebhook.ingestor.models.WebhookRequestData
 import company.thewebhook.ingestor.plugins.*
 import company.thewebhook.messagestore.ProviderMapper
+import company.thewebhook.messagestore.consumer.Consumer
 import company.thewebhook.messagestore.producer.Producer
 import company.thewebhook.util.ApplicationEnv
 import company.thewebhook.util.ConfigException
@@ -16,6 +17,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import kotlin.text.Regex
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -118,4 +121,36 @@ fun Application.module() = launch {
             }
         }
     }
+
+    // Test code
+    // START >>>
+    val consumerConfig =
+        providerMapper.getConsumerProviderConfig(listOf("incoming"))
+            ?: throw ConfigException("No provider configured for \"incoming\" topic")
+    val timeout = 1000
+    val consumer: Consumer<ByteArray> =
+        Consumer.get(consumerConfig.provider, timeout.toDuration(DurationUnit.MILLISECONDS))
+    consumer.connect(consumerConfig.internalConfig)
+    consumer.subscribe(listOf("incoming"))
+
+    val con = consumer as Consumer.MessageAcknowledgment<ByteArray>
+
+    var initTime = Clock.System.now().toEpochMilliseconds()
+    while (true) {
+        val currTime = Clock.System.now().toEpochMilliseconds()
+        if (currTime - initTime >= 1000) {
+            try {
+                val msg = consumer.read()
+                print("\nConsumer message >>>\n")
+                print(msg)
+                if (msg.isNotEmpty()) con.nack(msg[0].messageId.toByteArray())
+                print("\n<<<\n")
+            } catch (e: Exception) {
+                print(e)
+            }
+
+            initTime = Clock.System.now().toEpochMilliseconds()
+        }
+    }
+    // <<< END
 }
